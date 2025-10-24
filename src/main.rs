@@ -139,37 +139,75 @@ fn main() {
 
     let (mut window, thread) = raylib::init()
         .size(window_width, window_height)
-        .title("Rust Graphics - Renderer Example")
-        .log_level(TraceLogLevel::LOG_WARNING) // Suppress INFO messages
+        .title("Lab 5 - Celestial Bodies Shader")
+        .log_level(TraceLogLevel::LOG_WARNING)
         .build();
 
     let mut framebuffer = Framebuffer::new(window_width as u32, window_height as u32);
-    framebuffer.set_background_color(Vector3::new(0.2, 0.2, 0.4)); // Dark blue-ish
+    framebuffer.set_background_color(Vector3::new(0.0, 0.0, 0.1)); // Deep space blue
 
     // Initialize the texture inside the framebuffer
     framebuffer.init_texture(&mut window, &thread);
 
-    let mut translation = Vector3::new(300.0, 300.0, 0.0);
-    let mut rotation = Vector3::new(0.0, 0.0, 0.0);
-    let mut scale = 50.0f32; // Set scale to 1.2
+    // Define celestial bodies with their models and shaders
+    let celestial_bodies = vec![
+        ("assets/models/13913_Sun_v2_l3.obj", ShaderType::Sun, "Sun"),
+        ("assets/models/13902_Earth_v1_l3.obj", ShaderType::Earth, "Earth"),
+        ("assets/models/13905_Jupiter_V1_l3.obj", ShaderType::GasGiant, "Jupiter"),
+    ];
 
-    let obj = Obj::load("assets/models/13913_Sun_v2_l3.obj").expect("Failed to load obj");
-    let vertex_array = obj.get_vertex_array();
+    let mut current_body = 0;
+    let mut last_switch_time = 0.0;
+    let switch_interval = 5.0; // Switch every 5 seconds
+
+    // Load initial model
+    let obj = Obj::load(celestial_bodies[current_body].0).expect("Failed to load obj");
+    let mut vertex_array = obj.get_vertex_array();
+
+    let mut translation = Vector3::new(400.0, 300.0, 0.0);
+    let mut rotation = Vector3::new(0.0, 0.0, 0.0);
+    let mut scale = 100.0f32;
+    let mut time = 0.0f32;
+
+    println!("Rendering: {} - Use arrow keys to move, S/A to scale, Q/W/E/R/T/Y to rotate", 
+             celestial_bodies[current_body].2);
+    println!("Press SPACE to switch between celestial bodies");
 
     while !window.window_should_close() {
+        time += 0.016; // ~60 FPS
+        
+        // Handle body switching
+        if window.is_key_pressed(KeyboardKey::KEY_SPACE) || (time - last_switch_time > switch_interval) {
+            current_body = (current_body + 1) % celestial_bodies.len();
+            last_switch_time = time;
+            
+            // Load new model
+            let obj = Obj::load(celestial_bodies[current_body].0).expect("Failed to load obj");
+            vertex_array = obj.get_vertex_array();
+            
+            println!("Switched to: {}", celestial_bodies[current_body].2);
+            
+            // Reset transformation
+            translation = Vector3::new(400.0, 300.0, 0.0);
+            rotation = Vector3::new(0.0, 0.0, 0.0);
+            scale = 100.0;
+        }
+
         handle_input(&mut window, &mut translation, &mut rotation, &mut scale);
+        
+        // Auto-rotate for visual effect
+        rotation.y += 0.01;
 
         framebuffer.clear();
 
         let model_matrix = create_model_matrix(translation, scale, rotation);
         let uniforms = Uniforms { 
             model_matrix,
-            shader_type: ShaderType::Sun, // Using Sun shader for the loaded sun model
+            shader_type: celestial_bodies[current_body].1,
         };
 
         render(&mut framebuffer, &uniforms, &vertex_array);
 
-        // Call the encapsulated swap_buffers function
         framebuffer.swap_buffers(&mut window, &thread);
 
         thread::sleep(Duration::from_millis(16));
