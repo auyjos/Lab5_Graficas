@@ -8,6 +8,8 @@ mod fragment;
 mod shaders;
 mod obj;
 mod matrix;
+mod rings;
+mod moons;
 
 use crate::matrix::new_matrix4;
 use crate::shaders::get_planet_color;
@@ -247,6 +249,49 @@ fn main() {
             };
 
             render(&mut framebuffer, &uniforms, &vertex_array);
+
+            // Renderizar lunas y anillos específicos para algunos planetas
+            match body.planet_type {
+                1 => {
+                    // Tierra - Renderizar luna (la Luna)
+                    let moon_orbit_angle = time * 0.08; // Faster moon orbit
+                    let moon_distance = 50.0;
+                    let moon_pos = Vector3::new(
+                        rotated_translation.x + moon_orbit_angle.cos() * moon_distance,
+                        rotated_translation.y + moon_orbit_angle.sin() * moon_distance,
+                        rotated_translation.z,
+                    );
+                    
+                    let moon_rotation = if auto_rotate {
+                        Vector3::new(0.0, time * 0.05, 0.0)
+                    } else {
+                        Vector3::new(0.0, 0.0, 0.0)
+                    };
+                    
+                    let moon_matrix = create_model_matrix(moon_pos, 8.0 * camera_zoom, moon_rotation);
+                    let moon_uniforms = Uniforms {
+                        model_matrix: moon_matrix,
+                        time,
+                        planet_type: 3, // Moon shader
+                    };
+                    render(&mut framebuffer, &moon_uniforms, &vertex_array);
+                },
+                2 => {
+                    // Gigante Gaseoso - Renderizar anillos
+                    let ring_scale = 1.8;
+                    let ring_matrix = create_model_matrix(rotated_translation, body.scale * ring_scale * camera_zoom, Vector3::new(0.2, 0.0, 0.0));
+                    let ring_uniforms = Uniforms {
+                        model_matrix: ring_matrix,
+                        time,
+                        planet_type: 4, // Ring shader
+                    };
+                    
+                    // Generate and render ring geometry
+                    let ring_vertices = rings::generate_flat_ring(1.0, 1.5, 128);
+                    render(&mut framebuffer, &ring_uniforms, &ring_vertices);
+                },
+                _ => {}
+            }
         }
 
         // Display framebuffer and text overlay

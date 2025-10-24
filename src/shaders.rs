@@ -227,12 +227,75 @@ fn gas_giant_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3
     result
 }
 
+/// MOON SHADER - Gray/Rocky surface (for Earth's Moon, etc)
+fn moon_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
+    let pos = vertex.transformed_position;
+    let len = (pos.x * pos.x + pos.y * pos.y + pos.z * pos.z).sqrt();
+    if len < 0.001 {
+        return Vector3::new(0.0, 0.0, 0.0);
+    }
+    
+    let norm = Vector3::new(pos.x / len, pos.y / len, pos.z / len);
+    let u = (norm.x.atan2(norm.z) / std::f32::consts::PI + 1.0) * 0.5;
+    let v = (norm.y).asin() / std::f32::consts::PI + 0.5;
+    
+    let uv = Vector2::new(u, v);
+    
+    // Layer 1: Base gray rocky surface
+    let base = Vector3::new(0.5, 0.5, 0.52);
+    
+    // Layer 2: Cratered surface
+    let craters = fbm(uv * 8.0, 4);
+    let crater_shadows = (craters - 0.3) * 2.0;
+    let surface = mix_color(base, Vector3::new(0.3, 0.3, 0.32), crater_shadows.clamp(0.0, 1.0) * 0.7);
+    
+    // Layer 3: Bright highlights on peaks
+    let peaks = fbm(uv * 15.0 + time * 0.1, 2);
+    let highlights = mix_color(surface, Vector3::new(0.8, 0.8, 0.82), (peaks - 0.5) * 0.4);
+    
+    // Layer 4: Subtle color variations
+    let variations = fbm(uv * 3.0, 2);
+    let result = mix_color(highlights, Vector3::new(0.6, 0.6, 0.58), variations * 0.2);
+    
+    result
+}
+
+/// RING SHADER - Saturn-like rings with bands
+fn ring_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
+    let u = vertex.tex_coords.x;
+    let v = vertex.tex_coords.y;
+    
+    // Distance from center (0 = inner, 1 = outer)
+    let r = (u - 0.5) * (u - 0.5) + (v - 0.5) * (v - 0.5);
+    let r = r.sqrt() * 2.0;
+    
+    // Layer 1: Base ring color (pale gold)
+    let base = Vector3::new(0.9, 0.85, 0.6);
+    
+    // Layer 2: Ring bands (alternating darker and lighter bands)
+    let bands = ((r * 30.0).sin() * 0.5 + 0.5).max(0.0).min(1.0);
+    let band_color = Vector3::new(0.7, 0.6, 0.3);
+    let with_bands = mix_color(base, band_color, bands * 0.5);
+    
+    // Layer 3: Particle shadows
+    let particles = fbm(Vector2::new(u * 10.0, r * 20.0 + time * 0.5), 3);
+    let shadow = mix_color(with_bands, Vector3::new(0.5, 0.4, 0.1), particles * 0.4);
+    
+    // Layer 4: Edge darker (depth effect)
+    let edge_darkness = smoothstep(0.0, 0.2, r) * smoothstep(1.5, 1.0, r);
+    let result = mix_color(shadow, Vector3::new(0.2, 0.15, 0.05), (1.0 - edge_darkness) * 0.6);
+    
+    result
+}
+
 /// Get the appropriate shader color based on planet type
 pub fn get_planet_color(fragment: &Fragment, vertex: &Vertex, time: f32, planet_type: u32) -> Vector3 {
     match planet_type {
         0 => sun_shader(fragment, vertex, time),
         1 => earth_shader(fragment, vertex, time),
         2 => gas_giant_shader(fragment, vertex, time),
+        3 => moon_shader(fragment, vertex, time),    // Moon shader
+        4 => ring_shader(fragment, vertex, time),    // Ring shader
         _ => Vector3::new(1.0, 1.0, 1.0), // Default white
     }
 }
