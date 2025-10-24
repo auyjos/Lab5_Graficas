@@ -193,6 +193,30 @@ fn main() {
             orbit_speed: 0.018,   // Slower orbit (farther away)
             rotation_speed: 0.02,
         },
+        CelestialBody {
+            name: "Venus".to_string(),
+            planet_type: 7,
+            scale: 22.0,          // Similar to Earth
+            orbit_radius: 65.0,   // Closer to sun than Earth
+            orbit_speed: 0.048,   // Faster orbit
+            rotation_speed: 0.008, // Very slow rotation (retrograde)
+        },
+        CelestialBody {
+            name: "Neptuno".to_string(),
+            planet_type: 5,
+            scale: 32.0,          // Slightly smaller than gas giant
+            orbit_radius: 180.0,  // Very far orbit
+            orbit_speed: 0.011,   // Very slow orbit
+            rotation_speed: 0.025,
+        },
+        CelestialBody {
+            name: "Urano".to_string(),
+            planet_type: 6,
+            scale: 30.0,          // Slightly larger than Neptune
+            orbit_radius: 160.0,  // Between gas giant and Neptune
+            orbit_speed: 0.014,   // Slower than gas giant
+            rotation_speed: 0.035, // Fast rotation
+        },
     ];
 
     while !window.window_should_close() {

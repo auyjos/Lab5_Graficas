@@ -1,10 +1,40 @@
 # Lab 5 - Sistema Solar Procedural
 
-**Renderer 3D con Shaders Procedurales** - Implementación de un sistema solar miniatura usando técnicas de programación gráfica sin texturas.
+**Renderer 3D con Shaders Procedurales Creativos** - Implementación de un sistema solar miniatura usando técnicas de programación gráfica sin texturas, con 6 planetas y shaders multi-capa.
 
 ## 🌍 Descripción
 
-Un renderer que renderiza **simultáneamente 3 cuerpos celestes** en órbita alrededor del **Sol**, todo generado con shaders procedurales (sin texturas ni materiales).
+Un renderer que renderiza **simultáneamente 6 cuerpos celestes** en órbita alrededor del **Sol**, todo generado con shaders procedurales creativos (sin texturas ni materiales). Cada planeta tiene un shader único con 5+ capas de complejidad.
+
+## 📋 Planetas Implementados
+
+```
+                    ☆ Sol (Centro) - 5 capas
+                   /|\
+                  / | \
+                 /  |  \
+                /   |   \
+            ◉ Venus   ◉ Tierra - 5 capas + Luna
+         (Órbita      (Órbita
+          cercana)     media)
+                    
+    ◉ Gigante Gaseoso - 5 capas + Anillos (Órbita lejana)
+    ◉ Urano - 5 capas (Órbita muy lejana)
+    ◉ Neptuno - 5 capas (Órbita extrema)
+```
+
+### 🌟 Shaders Creativos (5+ Capas cada uno)
+
+| Planeta | Tipo | Capas | Características Creativos |
+|---------|------|-------|---------------------------|
+| **Sol** | 0 | 5 | Gradiente de núcleo, fotosfera turbulenta, prominencias solares, corona luminosa, líneas magnéticas |
+| **Tierra** | 1 | 5 | Océanos, continentes complejos, cordilleras, nubes animadas, casquetes polares + atmósfera |
+| **Gigante Gaseoso** | 2 | 5 | Atmósfera naranja, bandas horizontales, tormentas turbulentas, Gran Mancha Roja, relámpagos |
+| **Venus** | 7 | 5 | Atmósfera amarilla densa, remolinos de nubes tóxicas, puntos volcánicos ardientes, bandas de super-rotación, resplandor de invernadero |
+| **Neptuno** | 5 | 5 | Base oceánica azul profunda, bandas de metano, Gran Mancha Oscura, vientos blancos de alta altitud, turbulencia atmosférica |
+| **Urano** | 6 | 5 | Hielo cianita, patrones de escarcha, bandas polares sutiles, tormenta inclinada (rotación de lado), brillo de hielo |
+| **Luna (Tierra)** | 3 | 4 | Crateres, sombras, picos brillantes, variaciones de color |
+| **Anillos (Gas Giant)** | 4 | 4 | Bandas de anillos, partículas, efecto de profundidad, oscurecimiento de bordes |
 
 ## 📋 Table of Contents
 
@@ -31,15 +61,20 @@ Un renderer que renderiza **simultáneamente 3 cuerpos celestes** en órbita alr
         /   |   \
        /    |    \
       /     |     \
-  ◉ Tierra◉|◉ Gas Giant
- (Órbita    |  (Órbita
-  cercana)  |   lejana)
+  ◉ Venus  ◉ Tierra  ◉ Gigante Gaseoso
+ (Órbita   (Órbita    (Órbita lejana)
+  cercana) media)
+      
+      ◉ Urano + ◉ Neptuno (Órbitas extremas)
 ```
 
 **En pantalla:**
 - **Sol**: Fijo en el centro, rotando sobre su eje
-- **Tierra**: Orbita cercana alrededor del Sol (radio: 80px)
-- **Gigante Gaseoso**: Órbita lejana alrededor del Sol (radio: 130px)
+- **Tierra**: Orbita cercana alrededor del Sol (radio: 90px) + Luna satélite
+- **Venus**: Órbita muy cercana (radio: 65px)
+- **Gigante Gaseoso**: Órbita lejana alrededor del Sol (radio: 140px) + Anillos
+- **Urano**: Órbita muy lejana (radio: 160px)
+- **Neptuno**: Órbita extrema (radio: 180px)
 
 This project is an educational graphics renderer that demonstrates core computer graphics concepts in Rust. It provides a complete pipeline for loading 3D models (OBJ format), applying transformations, and rendering them in real-time using a custom rasterization approach combined with Raylib for window management.
 
@@ -52,43 +87,53 @@ This project is an educational graphics renderer that demonstrates core computer
 
 ## ✨ Features
 
-- **3D Model Loading**: Load and render OBJ format 3D models with support for materials (MTL files)
-- **Matrix Transformations**: Full support for translation, rotation, and scaling transformations
-- **Real-time Rendering**: Smooth 60+ FPS rendering with continuous framebuffer updates
-- **Multiple Models**: Pre-loaded character and object models for demonstration
-- **Custom Graphics Pipeline**: Educational implementation of vertex/fragment shading concepts
-- **Framebuffer Abstraction**: Efficient pixel buffer management
-- **Interactive Window**: Raylib-based window management with support for user input
+- **6 Cuerpos Celestes Creativos**: Sol, Tierra, Venus, Gigante Gaseoso, Urano y Neptuno
+- **Shaders Procedurales Multi-capa (5+ capas)**: Cada planeta tiene un shader único y creativo sin usar texturas
+- **Sistema de Lunas**: La Tierra posee una Luna satélite que orbita alrededor de ella
+- **Sistema de Anillos**: El Gigante Gaseoso tiene anillos procedurales planos
+- **Mecánica Orbital 3D**: Órbitas elípticas con inclinación, velocidades independientes
+- **Rotación y Traslación**: Cada planeta rota sobre su eje y se traslada en su órbita
+- **Animación en Tiempo Real**: Shaders animados con patrones dinámicos (tiempo)
+- **Matriz Transformaciones Completa**: Traslación, rotación y escalado en 3D
+- **Framebuffer Personalizado**: Gestión de píxeles con rasterización de triángulos
+- **Cargador OBJ**: Carga modelos 3D en formato Wavefront OBJ
+- **Controles Interactivos**: Cámara, zoom, rotación del sistema, pausa
 
 ## 📁 Project Structure
 
 ```
-computer-graphics-v3/
+Lab5/
 ├── Cargo.toml                 # Rust project manifest with dependencies
-├── README.md                  # Original lesson notes
-├── README_DETAILED.md         # This comprehensive guide
+├── README.md                  # This comprehensive guide
+├── CONTROLES.md              # Control keys and shortcuts
 ├── .gitattributes            # Git attributes configuration
 ├── src/                       # Rust source code
-│   ├── main.rs              # Main application entry point and render loop
+│   ├── main.rs              # Main application with 6 celestial bodies
+│   ├── shaders.rs           # 8 Shaders procedurales creativos (5+ capas)
+│   │                           ├── sun_shader (5 capas)
+│   │                           ├── earth_shader (5 capas)
+│   │                           ├── gas_giant_shader (5 capas)
+│   │                           ├── venus_shader (5 capas)
+│   │                           ├── neptune_shader (5 capas)
+│   │                           ├── uranus_shader (5 capas)
+│   │                           ├── moon_shader (4 capas)
+│   │                           └── ring_shader (4 capas)
 │   ├── framebuffer.rs       # Framebuffer management and rendering
+│   ├── triangle.rs          # Barycentric coordinate rasterization
 │   ├── obj.rs               # OBJ file loader and model parser
 │   ├── vertex.rs            # Vertex structure and attributes
 │   ├── fragment.rs          # Fragment/pixel shader implementation
-│   ├── shaders.rs           # Shader programs (vertex and fragment)
-│   ├── triangle.rs          # Triangle rasterization
 │   ├── line.rs              # Line drawing algorithm
 │   ├── matrix.rs            # Matrix mathematics and transformations
-│   └── vertex.rs            # Vertex data structures
+│   ├── rings.rs             # Procedural ring generation
+│   └── moons.rs             # Moon system scaffolding
 ├── assets/
 │   └── models/              # 3D model files
-│       ├── anya.obj/mtl     # Anya character model
-│       ├── barbara.obj/mtl  # Barbara character model
-│       ├── kumoko.obj/mtl   # Kumoko character model
-│       ├── nicole.obj/mtl   # Nicole character model
-│       ├── rem.obj/mtl      # Rem character model
-│       ├── zelda.obj/mtl    # Zelda character model
-│       ├── spaceship.obj    # Spaceship model
-│       └── model.obj        # Generic model
+│       ├── 13902_Earth_v1_l3.obj/mtl
+│       ├── 13905_Jupiter_V1_l3.obj/mtl
+│       ├── 13907_Uranus_v2_l3.obj/mtl
+│       ├── 13913_Sun_v2_l3.obj/mtl
+│       └── 10464_Asteroid_v1_Iterations-2.obj/mtl
 └── target/                  # Build artifacts (generated)
 ```
 
@@ -143,12 +188,6 @@ This creates highly optimized binaries for better runtime performance.
 ### Running the Application
 
 ```bash
-cargo run
-```
-
-For release mode (faster and recommended):
-
-```bash
 cargo run --release
 ```
 
@@ -158,8 +197,8 @@ The solar system is fully interactive. While the application is running, use the
 
 **Camera Movement:**
 - Arrow keys (↑ ↓ ← →) - Pan the camera
-- **S** - Zoom in
-- **A** - Zoom out
+- **S** - Zoom in (up to 3x)
+- **A** - Zoom out (down to 0.3x)
 
 **System Rotation:**
 - **Q/W** - Rotate around X axis
@@ -175,13 +214,72 @@ For a complete guide, see [CONTROLES.md](./CONTROLES.md)
 ### Dynamic Features
 
 The system automatically:
-- Renders 3 celestial bodies simultaneously
-- Calculates orbital mechanics in real-time
-- Generates procedural textures (shaders) for each planet
+- Renders 6 celestial bodies simultaneously
+- Calculates orbital mechanics in real-time with 3D inclination
+- Generates procedural textures (5+ layer shaders) for each planet
 - Updates FPS counter and timing information
 - Displays all available controls on screen
+- Renders lunas and anillos for specific planets
 
 ## 🧮 Technical Details
+
+### 🎨 Shader Creativity & Complexity Analysis
+
+Each shader implements **5+ layers** of procedural generation using advanced noise functions:
+
+#### **Sol (5 Capas) - Realistic Star Surface**
+1. **Core Gradient**: Temperature gradient (blanco → amarillo → naranja)
+2. **Photosphere**: Turbulencia FBM de 4 octavas para superficie realista
+3. **Solar Prominences**: Destellos brillantes animados por tiempo
+4. **Corona Glow**: Efecto de atmósfera de plasma alrededor
+5. **Magnetic Fields**: Patrones de líneas magnéticas fluyen dinámicamente
+
+**Técnicas**: FBM (Fractional Brownian Motion), smoothstep blending, animación temporal
+
+#### **Tierra (5 Capas) - Realistic Earth**
+1. **Ocean Base**: Azul profundo como océanos reales
+2. **Landmasses**: Ruido de 5 octavas para forma de continentes complejos
+3. **Mountain Ranges**: Picos brillantes en cordilleras
+4. **Animated Clouds**: Remolinos de nubes en 2 niveles con offset temporal
+5. **Polar Ice Caps + Atmosphere**: Casquetes de hielo brillantes + brillo atmosférico en bordes
+
+**Técnicas**: Ruido multi-octava, animación de nubes con tiempo, mezcla de colores
+
+#### **Gigante Gaseoso (5 Capas) - Complex Storm System**
+1. **Base Atmosphere**: Gradiente naranja-marrón (base gaseosa)
+2. **Atmospheric Bands**: Bandas horizontales oscilantes con animación temporal
+3. **Turbulent Storms**: Tormenta a gran escala generada por FBM doble
+4. **Great Red Spot**: Mancha roja gigante con interior turbulento (simulación realista)
+5. **Lightning & Disturbances**: Relámpagos dinámicos y disturbios atmosféricos
+
+**Técnicas**: FBM dual, efecto de mancha focal, animación rápida de rayos
+
+#### **Venus (5 Capas) - Hellish Atmosphere**
+1. **Base Yellow Atmosphere**: Atmósfera amarilla hellish
+2. **Thick Toxic Clouds**: Remolinos de nubes tóxicas con doble FBM
+3. **Volcanic Hot Spots**: Puntos volcánicos ardientes (rojo-naranja)
+4. **Super-Rotation Bands**: Bandas de super-rotación rápida (característica de Venus)
+5. **Greenhouse Glow**: Resplandor de efecto invernadero en los bordes
+
+**Técnicas**: Animación rápida, patrones complejos, efecto de borde
+
+#### **Neptuno (5 Capas) - Deep Ocean Ice Giant**
+1. **Deep Ocean Base**: Azul marino profundo realista
+2. **Methane Cloud Bands**: Bandas de nubes de metano
+3. **Great Dark Spot**: Tormenta gigante similar a la de Júpiter
+4. **High-Altitude White Streaks**: Vientos de alta velocidad en forma de rayas blancas
+5. **Atmospheric Turbulence**: Turbulencia atmosférica compleja
+
+**Técnicas**: FBM de 4 octavas, animación de vientos, mancha focal
+
+#### **Urano (5 Capas) - Tilted Ice Giant**
+1. **Icy Cyan Base**: Base de hielo cianita
+2. **Methane Frost Patterns**: Patrones de escarcha de metano
+3. **Subtle Polar Bands**: Bandas polares débiles (único entre gigantes)
+4. **Tilted Storm Spot**: Tormenta inclinada (Urano rota de lado)
+5. **Icy Gloss & Shimmer**: Brillo y destello de hielo
+
+**Técnicas**: Inclinación de parámetros, animación de tormenta, efecto de brillo
 
 ### Rendering Pipeline
 
@@ -199,7 +297,7 @@ The project implements a complete graphics pipeline with the following stages:
 
 3. **Fragment Processing**
    - Compute final pixel color using procedural shaders
-   - Apply planet-specific shader effects (4 layers per planet)
+   - Apply planet-specific shader effects (5+ layers per planet)
    - Write to framebuffer
 
 4. **Output**

@@ -120,7 +120,7 @@ fn smoothstep(edge0: f32, edge1: f32, x: f32) -> f32 {
     t * t * (3.0 - 2.0 * t)
 }
 
-/// SUN SHADER - Golden/Orange with turbulent patterns
+/// SUN SHADER - Dynamic solar surface with 5 layers
 fn sun_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
     // UV coordinates from position
     let pos = vertex.transformed_position;
@@ -135,25 +135,37 @@ fn sun_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
     
     let uv = Vector2::new(u, v);
     
-    // Layer 1: Base sun color (golden yellow)
-    let base = Vector3::new(1.0, 0.9, 0.0);
+    // Layer 1: Core temperature gradient (white-yellow-orange)
+    let core_gradient = Vector3::new(1.0, 1.0, 0.2) * (0.8 + fbm(uv * 2.0, 2) * 0.2);
     
-    // Layer 2: Add surface turbulence
-    let turbulence = fbm(uv * 5.0 + time * 0.3, 3);
-    let surface = mix_color(base, Vector3::new(1.0, 0.5, 0.0), turbulence * 0.5);
+    // Layer 2: Photosphere turbulence (thick noise patterns)
+    let photosphere = fbm(uv * 6.0 + time * 0.25, 4);
+    let photosphere_color = Vector3::new(1.0, 0.7, 0.0);
+    let with_photosphere = mix_color(core_gradient, photosphere_color, photosphere * 0.6);
     
-    // Layer 3: Add corona effect (outer glow)
-    let corona_pattern = fbm(uv * 8.0 + time * 0.5, 2);
-    let corona = mix_color(surface, Vector3::new(1.0, 0.8, 0.0), corona_pattern * 0.3);
+    // Layer 3: Solar prominences (bright streaks)
+    let prominences = fbm(uv * 8.0 - time * 0.15, 3);
+    let prominence_height = (uv.y - 0.5).abs() * 2.0;
+    let prominence_effect = (1.0 - prominence_height) * prominences;
+    let prominence_color = Vector3::new(1.0, 0.9, 0.3);
+    let with_prominences = mix_color(with_photosphere, prominence_color, prominence_effect * 0.4);
     
-    // Layer 4: Add bright spots (solar flares)
-    let flares = (time.sin() * (uv.x * 20.0).sin() * (uv.y * 15.0).sin()).abs();
-    let result = mix_color(corona, Vector3::new(1.0, 1.0, 0.5), flares * 0.2);
+    // Layer 4: Corona glow (outer atmosphere)
+    let corona_pattern = fbm(uv * 12.0 + time * 0.3, 2);
+    let corona_radius = ((uv.x - 0.5) * (uv.x - 0.5) + (uv.y - 0.5) * (uv.y - 0.5)).sqrt();
+    let corona_glow = (0.5 - corona_radius).clamp(0.0, 0.3) * corona_pattern;
+    let corona_color = Vector3::new(1.0, 0.95, 0.7);
+    let with_corona = mix_color(with_prominences, corona_color, corona_glow * 0.5);
+    
+    // Layer 5: Magnetic field lines (flowing patterns)
+    let magnetic_fields = (time.sin() * (uv.x * 25.0 + time * 0.1).sin() * (uv.y * 15.0).cos()).abs();
+    let magnetic_color = Vector3::new(1.0, 1.0, 0.4);
+    let result = mix_color(with_corona, magnetic_color, magnetic_fields * 0.15);
     
     result
 }
 
-/// EARTH-LIKE PLANET - Blue/Green with continents
+/// EARTH-LIKE PLANET - Realistic with 5 layers (oceans, continents, clouds, ice, atmosphere)
 fn earth_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
     // UV coordinates from position
     let pos = vertex.transformed_position;
@@ -168,28 +180,46 @@ fn earth_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
     
     let uv = Vector2::new(u, v);
     
-    // Layer 1: Ocean color (deep blue)
-    let ocean = Vector3::new(0.0, 0.2, 0.6);
+    // Layer 1: Ocean base (deep blue)
+    let ocean_base = Vector3::new(0.0, 0.3, 0.7);
     
-    // Layer 2: Continents (landmasses with noise)
-    let land_noise = fbm(uv * 4.0, 3);
-    let land_color = Vector3::new(0.2, 0.6, 0.2); // Green
-    let with_land = mix_color(ocean, land_color, smoothstep(0.4, 0.7, land_noise));
+    // Layer 2: Landmasses (continents using complex noise)
+    let land_noise = fbm(uv * 5.0 - time * 0.02, 5);
+    let land_mask = smoothstep(0.4, 0.6, land_noise);
+    let land_color = mix_color(
+        Vector3::new(0.0, 0.5, 0.0),  // Forest green
+        Vector3::new(0.8, 0.7, 0.3),  // Desert sand
+        fbm(uv * 15.0, 2)
+    );
+    let with_land = mix_color(ocean_base, land_color, land_mask);
     
-    // Layer 3: Cloud patterns
-    let cloud_noise = fbm(uv * 6.0 + time * 0.1, 2);
-    let clouds = Vector3::new(1.0, 1.0, 1.0);
-    let with_clouds = mix_color(with_land, clouds, smoothstep(0.6, 0.8, cloud_noise) * 0.6);
+    // Layer 3: Mountain ranges (bright peaks on continents)
+    let mountain_detail = fbm(uv * 25.0, 3);
+    let mountain_mask = land_mask * (mountain_detail - 0.3).clamp(0.0, 1.0);
+    let mountain_color = Vector3::new(0.6, 0.5, 0.4);
+    let with_mountains = mix_color(with_land, mountain_color, mountain_mask * 0.7);
     
-    // Layer 4: Polar ice caps
-    let ice_latitude = smoothstep(0.8, 1.0, v) + smoothstep(0.2, 0.0, v);
+    // Layer 4: Clouds (animated swirling patterns)
+    let cloud_noise1 = fbm(uv * 4.0 + time * 0.05, 3);
+    let cloud_noise2 = fbm(uv * 6.0 - time * 0.03, 3);
+    let clouds = smoothstep(0.3, 0.8, (cloud_noise1 + cloud_noise2) * 0.5);
+    let cloud_color = Vector3::new(1.0, 1.0, 1.0);
+    let with_clouds = mix_color(with_mountains, cloud_color, clouds * 0.6);
+    
+    // Layer 5: Polar ice caps and atmospheric glow
+    let ice_factor = (1.0 - (v - 0.5).abs() * 3.0).clamp(0.0, 1.0);
     let ice_color = Vector3::new(0.9, 0.95, 1.0);
-    let result = mix_color(with_clouds, ice_color, ice_latitude * 0.7);
+    let with_ice = mix_color(with_clouds, ice_color, ice_factor * 0.4);
+    
+    // Atmospheric rim (subtle blue glow at edges)
+    let rim_factor = smoothstep(0.8, 1.0, ((uv.x - 0.5) * (uv.x - 0.5) + (uv.y - 0.5) * (uv.y - 0.5)).sqrt() * 1.5);
+    let atmosphere_color = Vector3::new(0.3, 0.6, 1.0);
+    let result = mix_color(with_ice, atmosphere_color, rim_factor * 0.3);
     
     result
 }
 
-/// GAS GIANT - Orange/Red with bands and storms
+/// GAS GIANT - Complex with 5 layers (bands, storms, great red spot, lightning, atmospheric depth)
 fn gas_giant_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
     // UV coordinates from position
     let pos = vertex.transformed_position;
@@ -204,25 +234,53 @@ fn gas_giant_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3
     
     let uv = Vector2::new(u, v);
     
-    // Layer 1: Base color - orangish/reddish
-    let base = Vector3::new(0.8, 0.6, 0.3);
+    // Layer 1: Base atmosphere color (orange/brown gradient)
+    let base_color = mix_color(
+        Vector3::new(1.0, 0.6, 0.2),  // Bright orange
+        Vector3::new(0.8, 0.4, 0.1),  // Dark brown
+        v  // Gradient from bottom to top
+    );
     
-    // Layer 2: Band patterns (striped effect)
-    let bands = ((v * 10.0).sin() * 0.5 + 0.5).max(0.0).min(1.0);
-    let band_color = Vector3::new(0.7, 0.5, 0.2);
-    let with_bands = mix_color(base, band_color, bands * 0.6);
+    // Layer 2: Atmospheric bands (horizontal stripes)
+    let bands = ((v * 20.0 + time * 0.1).sin() * 0.5 + 0.5).max(0.0).min(1.0);
+    let band_darkness = smoothstep(0.3, 0.6, bands);
+    let band_color = Vector3::new(0.6, 0.3, 0.1);
+    let with_bands = mix_color(base_color, band_color, band_darkness * 0.5);
     
-    // Layer 3: Swirling storm patterns
-    let storm = fbm(uv * 3.0 + time * 0.2, 3);
-    let storm_color = Vector3::new(0.6, 0.3, 0.1); // Darker reddish-brown
-    let with_storm = mix_color(with_bands, storm_color, storm * 0.5);
+    // Layer 3: Turbulent storms and wind patterns
+    let storm_noise1 = fbm(uv * 8.0 + time * 0.08, 4);
+    let storm_noise2 = fbm(uv * 5.0 - time * 0.12, 3);
+    let storms = (storm_noise1 + storm_noise2) * 0.5;
+    let storm_mask = smoothstep(0.2, 0.8, storms);
+    let storm_color = mix_color(
+        Vector3::new(0.7, 0.4, 0.1),
+        Vector3::new(0.4, 0.2, 0.0),
+        fbm(uv * 15.0, 2)
+    );
+    let with_storms = mix_color(with_bands, storm_color, storm_mask * 0.6);
     
-    // Layer 4: Great Red Spot (large storm)
-    let spot_x = u - 0.7;
-    let spot_y = v - 0.4;
+    // Layer 4: Great Red Spot (massive storm system)
+    let spot_center_x = 0.6;
+    let spot_center_y = 0.35;
+    let spot_x = u - spot_center_x;
+    let spot_y = v - spot_center_y;
     let spot_dist = (spot_x * spot_x + spot_y * spot_y).sqrt();
-    let red_spot = Vector3::new(1.0, 0.3, 0.0);
-    let result = mix_color(with_storm, red_spot, smoothstep(0.15, 0.05, spot_dist) * 0.8);
+    
+    let spot_swirl = fbm(Vector2::new(u * 10.0 + spot_dist * 20.0 - time * 0.1, v * 5.0), 3);
+    let red_spot_color = mix_color(
+        Vector3::new(1.0, 0.3, 0.0),   // Bright red
+        Vector3::new(0.8, 0.1, 0.0),   // Deep red
+        spot_swirl
+    );
+    let spot_effect = smoothstep(0.2, 0.05, spot_dist);
+    let with_spot = mix_color(with_storms, red_spot_color, spot_effect * 0.9);
+    
+    // Layer 5: Lightning and atmospheric disturbances
+    let lightning_x = (u * 50.0 + time * 0.3).sin() * 0.1;
+    let lightning_y = (v * 40.0 - time * 0.25).sin() * 0.1;
+    let lightning_intensity = ((lightning_x + lightning_y).abs() - 0.1).clamp(0.0, 0.2);
+    let lightning_color = Vector3::new(1.0, 1.0, 0.3);
+    let result = mix_color(with_spot, lightning_color, lightning_intensity * 0.3);
     
     result
 }
@@ -288,6 +346,182 @@ fn ring_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
     result
 }
 
+/// NEPTUNE - Deep blue with dynamic storms and white clouds
+fn neptune_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
+    // UV coordinates from position
+    let pos = vertex.transformed_position;
+    let len = (pos.x * pos.x + pos.y * pos.y + pos.z * pos.z).sqrt();
+    if len < 0.001 {
+        return Vector3::new(0.0, 0.0, 0.0);
+    }
+    
+    let norm = Vector3::new(pos.x / len, pos.y / len, pos.z / len);
+    let u = (norm.x.atan2(norm.z) / std::f32::consts::PI + 1.0) * 0.5;
+    let v = (norm.y).asin() / std::f32::consts::PI + 0.5;
+    
+    let uv = Vector2::new(u, v);
+    
+    // Layer 1: Base deep ocean blue
+    let base_color = mix_color(
+        Vector3::new(0.0, 0.2, 0.6),  // Deep navy
+        Vector3::new(0.1, 0.3, 0.9),  // Vivid blue
+        v * 0.7
+    );
+    
+    // Layer 2: Methane cloud bands
+    let cloud_bands = ((v * 15.0 - time * 0.08).sin() * 0.5 + 0.5).max(0.0).min(1.0);
+    let band_noise = fbm(uv * 4.0, 2);
+    let cloud_mask = smoothstep(0.3, 0.7, cloud_bands + band_noise * 0.3);
+    let with_clouds = mix_color(base_color, Vector3::new(0.9, 0.95, 1.0), cloud_mask * 0.4);
+    
+    // Layer 3: Great Dark Spot (storm system similar to Jupiter)
+    let spot_center_x = 0.5;
+    let spot_center_y = 0.5;
+    let spot_x = (u - spot_center_x) * (u - spot_center_x);
+    let spot_y = (v - spot_center_y - 0.1) * (v - spot_center_y - 0.1);
+    let spot_dist = (spot_x + spot_y).sqrt();
+    
+    let spot_interior = fbm(uv * 12.0 + time * 0.15, 3);
+    let dark_spot = mix_color(
+        Vector3::new(0.0, 0.1, 0.3),  // Dark blue center
+        Vector3::new(0.1, 0.2, 0.5),  // Lighter blue edges
+        spot_interior
+    );
+    let spot_effect = smoothstep(0.25, 0.05, spot_dist);
+    let with_spot = mix_color(with_clouds, dark_spot, spot_effect * 0.8);
+    
+    // Layer 4: High-altitude white streaks (fast winds)
+    let wind_streak = (u * 30.0 - time * 0.4).sin() * 0.5 + 0.5;
+    let streak_mask = smoothstep(0.3, 0.55, v) * smoothstep(0.65, 0.55, v);
+    let white_streaks = Vector3::new(1.0, 1.0, 1.0);
+    let with_streaks = mix_color(with_spot, white_streaks, (wind_streak.abs() - 0.3) * streak_mask * 0.3);
+    
+    // Layer 5: Atmospheric turbulence and depth
+    let turbulence = fbm(uv * 7.0 - time * 0.12, 4);
+    let depth_color = Vector3::new(0.0, 0.1, 0.4);
+    let result = mix_color(with_streaks, depth_color, turbulence * 0.15);
+    
+    result
+}
+
+/// URANUS - Cyan ice giant with tilted appearance and icy rings
+fn uranus_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
+    // UV coordinates from position
+    let pos = vertex.transformed_position;
+    let len = (pos.x * pos.x + pos.y * pos.y + pos.z * pos.z).sqrt();
+    if len < 0.001 {
+        return Vector3::new(0.0, 0.0, 0.0);
+    }
+    
+    let norm = Vector3::new(pos.x / len, pos.y / len, pos.z / len);
+    let u = (norm.x.atan2(norm.z) / std::f32::consts::PI + 1.0) * 0.5;
+    let v = (norm.y).asin() / std::f32::consts::PI + 0.5;
+    
+    let uv = Vector2::new(u, v);
+    
+    // Layer 1: Base icy cyan color
+    let base_color = mix_color(
+        Vector3::new(0.3, 0.8, 0.9),  // Bright cyan
+        Vector3::new(0.2, 0.6, 0.8),  // Darker cyan
+        fbm(uv * 2.0, 2)
+    );
+    
+    // Layer 2: Methane frost patterns
+    let frost = fbm(uv * 6.0 + time * 0.05, 3);
+    let frost_color = Vector3::new(0.6, 0.95, 1.0);
+    let with_frost = mix_color(base_color, frost_color, frost * 0.6);
+    
+    // Layer 3: Subtle polar bands (unlike other planets, Uranus has faint bands)
+    let polar_bands = ((v * 8.0).sin() * 0.5 + 0.5).max(0.0).min(1.0);
+    let band_color = mix_color(
+        Vector3::new(0.2, 0.5, 0.7),
+        Vector3::new(0.4, 0.9, 1.0),
+        fbm(uv * 10.0, 2)
+    );
+    let with_bands = mix_color(with_frost, band_color, polar_bands * 0.3);
+    
+    // Layer 4: Tilted storm spot (Uranus rotates on its side)
+    let tilted_u = u - 0.3 * (time * 0.1).sin();
+    let tilted_v = v - 0.5 + 0.2 * (time * 0.08).cos();
+    let storm_x = (tilted_u - 0.5) * (tilted_u - 0.5);
+    let storm_y = (tilted_v - 0.3) * (tilted_v - 0.3);
+    let storm_dist = (storm_x + storm_y).sqrt();
+    
+    let storm_interior = fbm(uv * 14.0 + time * 0.2, 3);
+    let storm_color = mix_color(
+        Vector3::new(0.1, 0.4, 0.6),
+        Vector3::new(0.5, 0.9, 1.0),
+        storm_interior
+    );
+    let storm_effect = smoothstep(0.2, 0.04, storm_dist);
+    let with_storm = mix_color(with_bands, storm_color, storm_effect * 0.9);
+    
+    // Layer 5: Icy gloss and atmospheric shimmer
+    let gloss = fbm(uv * 20.0 - time * 0.3, 2);
+    let shimmer = smoothstep(0.4, 0.6, gloss);
+    let shine_color = Vector3::new(1.0, 1.0, 1.0);
+    let result = mix_color(with_storm, shine_color, shimmer * 0.2);
+    
+    result
+}
+
+/// VENUS - Hellish planet with thick yellow atmosphere and volcanic patterns
+fn venus_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
+    // UV coordinates from position
+    let pos = vertex.transformed_position;
+    let len = (pos.x * pos.x + pos.y * pos.y + pos.z * pos.z).sqrt();
+    if len < 0.001 {
+        return Vector3::new(0.0, 0.0, 0.0);
+    }
+    
+    let norm = Vector3::new(pos.x / len, pos.y / len, pos.z / len);
+    let u = (norm.x.atan2(norm.z) / std::f32::consts::PI + 1.0) * 0.5;
+    let v = (norm.y).asin() / std::f32::consts::PI + 0.5;
+    
+    let uv = Vector2::new(u, v);
+    
+    // Layer 1: Base hellish yellow atmosphere
+    let base_color = mix_color(
+        Vector3::new(1.0, 0.9, 0.4),  // Bright yellow
+        Vector3::new(1.0, 0.8, 0.3),  // Orange-yellow
+        fbm(uv * 3.0, 2) * 0.5
+    );
+    
+    // Layer 2: Thick toxic cloud swirls
+    let cloud_swirl1 = fbm(uv * 4.0 + time * 0.15, 3);
+    let cloud_swirl2 = fbm(uv * 5.0 - time * 0.1, 3);
+    let clouds = mix_color(
+        Vector3::new(1.0, 0.85, 0.2),
+        Vector3::new(0.8, 0.6, 0.0),
+        (cloud_swirl1 + cloud_swirl2) * 0.5
+    );
+    let with_clouds = mix_color(base_color, clouds, 0.7);
+    
+    // Layer 3: Volcanic hot spots
+    let volcano1 = fbm(uv * 8.0 + time * 0.05, 2);
+    let volcano2 = fbm((uv + Vector2::new(0.3, 0.4)) * 6.0 - time * 0.08, 2);
+    let hot_spot_color = mix_color(
+        Vector3::new(1.0, 0.3, 0.0),  // Red hot
+        Vector3::new(1.0, 0.5, 0.0),  // Orange hot
+        (volcano1 + volcano2) * 0.5
+    );
+    let hot_mask = ((volcano1 - 0.3) * 3.0).clamp(0.0, 1.0);
+    let with_volcanoes = mix_color(with_clouds, hot_spot_color, hot_mask * 0.5);
+    
+    // Layer 4: Atmospheric banding (super-rotation patterns)
+    let super_rotate = ((v * 20.0 + u * 3.0 - time * 0.2).sin() * 0.5 + 0.5).max(0.0).min(1.0);
+    let band_noise = fbm(uv * 12.0, 2);
+    let band_color = Vector3::new(1.0, 0.7, 0.1);
+    let with_bands = mix_color(with_volcanoes, band_color, super_rotate * band_noise * 0.3);
+    
+    // Layer 5: Atmospheric glow at edges (greenhouse effect)
+    let rim = (1.0 - v.abs() * 2.0 - 0.3).clamp(0.0, 1.0);
+    let glow_color = Vector3::new(1.0, 0.4, 0.0);
+    let result = mix_color(with_bands, glow_color, rim * rim * 0.3);
+    
+    result
+}
+
 /// Get the appropriate shader color based on planet type
 pub fn get_planet_color(fragment: &Fragment, vertex: &Vertex, time: f32, planet_type: u32) -> Vector3 {
     match planet_type {
@@ -296,6 +530,9 @@ pub fn get_planet_color(fragment: &Fragment, vertex: &Vertex, time: f32, planet_
         2 => gas_giant_shader(fragment, vertex, time),
         3 => moon_shader(fragment, vertex, time),    // Moon shader
         4 => ring_shader(fragment, vertex, time),    // Ring shader
+        5 => neptune_shader(fragment, vertex, time), // Neptune shader
+        6 => uranus_shader(fragment, vertex, time),  // Uranus shader
+        7 => venus_shader(fragment, vertex, time),   // Venus shader
         _ => Vector3::new(1.0, 1.0, 1.0), // Default white
     }
 }
