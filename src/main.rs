@@ -13,7 +13,7 @@ use crate::matrix::new_matrix4;
 use framebuffer::Framebuffer;
 use vertex::Vertex;
 use triangle::triangle;
-use shaders::vertex_shader;
+use shaders::{vertex_shader, sun_shader, earth_shader, gas_giant_shader, default_shader};
 use obj::Obj;
 use raylib::prelude::*;
 use std::thread;
@@ -22,6 +22,15 @@ use std::f32::consts::PI;
 
 pub struct Uniforms {
     pub model_matrix: Matrix,
+    pub shader_type: ShaderType,
+}
+
+#[derive(Clone, Copy)]
+pub enum ShaderType {
+    Sun,
+    Earth,
+    GasGiant,
+    Default,
 }
 
 fn create_model_matrix(translation: Vector3, scale: f32, rotation: Vector3) -> Matrix {
@@ -108,10 +117,18 @@ fn render(framebuffer: &mut Framebuffer, uniforms: &Uniforms, vertex_array: &[Ve
 
     // Fragment Processing Stage
     for fragment in fragments {
+        // Apply the appropriate shader based on the shader type
+        let final_color = match uniforms.shader_type {
+            ShaderType::Sun => sun_shader(&fragment, uniforms),
+            ShaderType::Earth => earth_shader(&fragment, uniforms),
+            ShaderType::GasGiant => gas_giant_shader(&fragment, uniforms),
+            ShaderType::Default => default_shader(&fragment),
+        };
+        
         framebuffer.point(
             fragment.position.x as i32,
             fragment.position.y as i32,
-            fragment.color
+            final_color
         );
     }
 }
@@ -136,7 +153,7 @@ fn main() {
     let mut rotation = Vector3::new(0.0, 0.0, 0.0);
     let mut scale = 50.0f32; // Set scale to 1.2
 
-    let obj = Obj::load("assets/models/Tree1.obj").expect("Failed to load obj");
+    let obj = Obj::load("assets/models/13913_Sun_v2_l3.obj").expect("Failed to load obj");
     let vertex_array = obj.get_vertex_array();
 
     while !window.window_should_close() {
@@ -145,7 +162,10 @@ fn main() {
         framebuffer.clear();
 
         let model_matrix = create_model_matrix(translation, scale, rotation);
-        let uniforms = Uniforms { model_matrix };
+        let uniforms = Uniforms { 
+            model_matrix,
+            shader_type: ShaderType::Sun, // Using Sun shader for the loaded sun model
+        };
 
         render(&mut framebuffer, &uniforms, &vertex_array);
 
