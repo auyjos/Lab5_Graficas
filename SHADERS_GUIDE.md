@@ -96,6 +96,8 @@ The application cycles through three models:
 2. **Earth** (`13902_Earth_v1_l3.obj`) - Uses Earth shader
 3. **Jupiter** (`13905_Jupiter_V1_l3.obj`) - Uses Gas Giant shader
 
+**Note**: The model files use inconsistent naming conventions (V1 vs v1/v2). This is inherited from the source models and doesn't affect functionality.
+
 ## Customization
 
 ### Modifying Shader Colors
@@ -112,16 +114,18 @@ let deep_ocean = Vector3::new(0.0, 0.1, 0.3);  // R, G, B (0.0-1.0)
 1. Add the model file to `assets/models/`
 2. Create a new shader function in `src/shaders.rs`
 3. Add a new `ShaderType` variant in `src/main.rs`
-4. Update the `celestial_bodies` vector in `main()`
+4. Update the `celestial_bodies` vector in `main()` function
+5. Update the match statement in `render()` function
 
-Example:
+Example for adding Mars:
+
 ```rust
-// In shaders.rs
+// Step 1: In src/shaders.rs - Add new shader function
 pub fn mars_shader(fragment: &Fragment, _uniforms: &Uniforms) -> Vector3 {
     Vector3::new(0.8, 0.3, 0.2)  // Reddish color
 }
 
-// In main.rs
+// Step 2: In src/main.rs - Add to ShaderType enum (around line 27)
 pub enum ShaderType {
     Sun,
     Earth,
@@ -129,6 +133,26 @@ pub enum ShaderType {
     GasGiant,
     Default,
 }
+
+// Step 3: In src/main.rs - Update celestial_bodies vector (around line 140)
+let celestial_bodies = vec![
+    ("assets/models/13913_Sun_v2_l3.obj", ShaderType::Sun, "Sun"),
+    ("assets/models/13902_Earth_v1_l3.obj", ShaderType::Earth, "Earth"),
+    ("assets/models/mars.obj", ShaderType::Mars, "Mars"),  // New
+    ("assets/models/13905_Jupiter_V1_l3.obj", ShaderType::GasGiant, "Jupiter"),
+];
+
+// Step 4: In src/main.rs - Update imports (around line 16)
+use shaders::{vertex_shader, sun_shader, earth_shader, mars_shader, gas_giant_shader, default_shader};
+
+// Step 5: In src/main.rs - Update match in render() (around line 109)
+let final_color = match uniforms.shader_type {
+    ShaderType::Sun => sun_shader(&fragment, uniforms),
+    ShaderType::Earth => earth_shader(&fragment, uniforms),
+    ShaderType::Mars => mars_shader(&fragment, uniforms),  // New
+    ShaderType::GasGiant => gas_giant_shader(&fragment, uniforms),
+    ShaderType::Default => default_shader(&fragment),
+};
 ```
 
 ### Adjusting Animation Speed
@@ -181,7 +205,10 @@ If you see a black screen:
 Error: Failed to load obj
 ```
 
-**Solution**: Check the file path in `main.rs` matches the actual model location.
+**Solution**: Check the file path in `main.rs` around line 152 in the `celestial_bodies` vector. Verify:
+- The file exists in `assets/models/` directory
+- The filename matches exactly (including case sensitivity)
+- The path string is correct
 
 ### Performance Issues
 
