@@ -182,7 +182,7 @@ fn main() {
             planet_type: 1,
             scale: 25.0,          // Smaller planet
             orbit_radius: 90.0,   // Orbit around sun
-            orbit_speed: 0.035,   // Good orbit speed
+            orbit_speed: 0.15,    // INCREASED: More visible orbit
             rotation_speed: 0.03,
         },
         CelestialBody {
@@ -190,7 +190,7 @@ fn main() {
             planet_type: 2,
             scale: 35.0,          // Larger planet
             orbit_radius: 140.0,  // Far orbit
-            orbit_speed: 0.018,   // Slower orbit (farther away)
+            orbit_speed: 0.08,    // INCREASED: More visible orbit
             rotation_speed: 0.02,
         },
         CelestialBody {
@@ -198,7 +198,7 @@ fn main() {
             planet_type: 7,
             scale: 22.0,          // Similar to Earth
             orbit_radius: 65.0,   // Closer to sun than Earth
-            orbit_speed: 0.048,   // Faster orbit
+            orbit_speed: 0.20,    // INCREASED: Faster orbit
             rotation_speed: 0.008, // Very slow rotation (retrograde)
         },
         CelestialBody {
@@ -206,7 +206,7 @@ fn main() {
             planet_type: 5,
             scale: 32.0,          // Slightly smaller than gas giant
             orbit_radius: 180.0,  // Very far orbit
-            orbit_speed: 0.011,   // Very slow orbit
+            orbit_speed: 0.05,    // INCREASED: More visible orbit
             rotation_speed: 0.025,
         },
         CelestialBody {
@@ -214,7 +214,7 @@ fn main() {
             planet_type: 6,
             scale: 30.0,          // Slightly larger than Neptune
             orbit_radius: 160.0,  // Between gas giant and Neptune
-            orbit_speed: 0.014,   // Slower than gas giant
+            orbit_speed: 0.07,    // INCREASED: More visible orbit
             rotation_speed: 0.035, // Fast rotation
         },
     ];
@@ -327,8 +327,13 @@ fn main() {
         
         // Draw HUD - Top info
         draw_handle.draw_text(&format!("FPS: {}", draw_handle.get_fps()), 10, 10, 20, Color::GREEN);
-        draw_handle.draw_text("Sistema Solar - 3 Cuerpos Celestes", 10, 40, 20, Color::WHITE);
+        draw_handle.draw_text("Sistema Solar - 6 Cuerpos Celestes", 10, 40, 20, Color::WHITE);
         draw_handle.draw_text(&format!("Time: {:.1}s", time), 10, 70, 15, Color::GRAY);
+        
+        // Show status with clear indicators
+        let status_rotate = if auto_rotate { "▶ ACTIVA" } else { "⏸ PAUSADA" };
+        let status_orbit = if auto_orbit { "▶ ACTIVA" } else { "⏸ PAUSADA" };
+        draw_handle.draw_text(&format!("Rotación: {} | Órbita: {}", status_rotate, status_orbit), 10, 100, 14, Color::YELLOW);
         
         // Draw HUD - Bottom controls
         let y_offset = window_height as i32 - 150;
@@ -337,7 +342,7 @@ fn main() {
         draw_handle.draw_text("O: Pausar/Reanudar orbita", 10, y_offset + 45, 14, Color::LIGHTGRAY);
         draw_handle.draw_text("Flechas: Mover camara | S/A: Zoom", 10, y_offset + 65, 14, Color::LIGHTGRAY);
         draw_handle.draw_text("Q/W: Rot X | E/R: Rot Y | T/Y: Rot Z", 10, y_offset + 85, 14, Color::LIGHTGRAY);
-        draw_handle.draw_text(&format!("Auto Rotate: {} | Auto Orbit: {} | Zoom: {:.2}", auto_rotate, auto_orbit, camera_zoom), 10, y_offset + 110, 14, Color::LIGHTGRAY);
+        draw_handle.draw_text(&format!("Zoom: {:.2}x", camera_zoom), 10, y_offset + 110, 14, Color::LIGHTGRAY);
 
         thread::sleep(Duration::from_millis(16));
     }
