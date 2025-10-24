@@ -1,0 +1,62 @@
+# Auto-detect text files and normalize line endings to LF
+* text=auto
+
+# Rust source files
+*.rs text eol=lf charset=utf-8
+Cargo.toml text eol=lf charset=utf-8
+Cargo.lock text eol=lf charset=utf-8
+
+# Documentation
+*.md text eol=lf charset=utf-8
+*.txt text eol=lf charset=utf-8
+README* text eol=lf charset=utf-8
+LICENSE* text eol=lf charset=utf-8
+
+# Configuration files
+*.toml text eol=lf charset=utf-8
+*.yaml text eol=lf charset=utf-8
+*.yml text eol=lf charset=utf-8
+*.json text eol=lf charset=utf-8
+.gitattributes text eol=lf charset=utf-8
+.gitignore text eol=lf charset=utf-8
+
+# Shell scripts
+*.sh text eol=lf
+*.fish text eol=lf
+
+# Windows batch scripts
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# 3D Model files (binary format)
+*.obj binary
+*.mtl text eol=lf charset=utf-8
+
+# Binary files
+*.o binary
+*.a binary
+*.so binary
+*.dylib binary
+*.dll binary
+*.exe binary
+
+# Build artifacts
+/target/** binary -diff
+*.rlib binary -diff
+
+# IDE files
+.vscode/** text eol=lf
+.idea/** binary -diff
+*.swp binary -diff
+*.swo binary -diff
+*~ binary -diff
+
+# macOS specific
+.DS_Store binary -diff
+.AppleDouble binary -diff
+.LSOverride binary -diff
+
+# Windows specific
+Thumbs.db binary -diff
+Desktop.ini binary -diff
