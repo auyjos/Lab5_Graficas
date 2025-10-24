@@ -136,7 +136,7 @@ fn main() {
     let mut rotation = Vector3::new(0.0, 0.0, 0.0);
     let mut scale = 50.0f32; // Set scale to 1.2
 
-    let obj = Obj::load("assets/models/Tree1.obj").expect("Failed to load obj");
+    let obj = Obj::load("assets/models/13902_Earth_v1_l3.obj").expect("Failed to load obj");
     let vertex_array = obj.get_vertex_array();
 
     while !window.window_should_close() {
