@@ -22,6 +22,7 @@ use std::f32::consts::PI;
 
 pub struct Uniforms {
     pub model_matrix: Matrix,
+    pub time: f32,
 }
 
 fn create_model_matrix(translation: Vector3, scale: f32, rotation: Vector3) -> Matrix {
@@ -134,18 +135,44 @@ fn main() {
 
     let mut translation = Vector3::new(300.0, 300.0, 0.0);
     let mut rotation = Vector3::new(0.0, 0.0, 0.0);
-    let mut scale = 50.0f32; // Set scale to 1.2
+    let mut scale = 50.0f32;
+    
+    // Animation parameters
+    let mut time = 0.0f32;
+    let mut auto_rotate = true;        // Enable/disable auto rotation
+    let mut auto_orbit = true;         // Enable/disable auto orbit
+    let orbit_radius = 100.0;          // Radius of orbit around center
+    let orbit_speed = 0.5;             // Orbital speed
+    let rotation_speed = 0.02;         // Rotation speed around Y axis
 
     let obj = Obj::load("assets/models/13902_Earth_v1_l3.obj").expect("Failed to load obj");
     let vertex_array = obj.get_vertex_array();
 
     while !window.window_should_close() {
-        handle_input(&mut window, &mut translation, &mut rotation, &mut scale);
+        handle_input(&mut window, &mut translation, &mut rotation, &mut scale, &mut auto_rotate, &mut auto_orbit);
+
+        // Update time
+        time += 0.016; // Approximately 60 FPS
+
+        // Auto-rotate the planet
+        if auto_rotate {
+            rotation.y += rotation_speed;
+        }
+
+        // Auto-orbit the planet around center (optional orbital motion)
+        if auto_orbit {
+            let center = Vector3::new(400.0, 300.0, 0.0);
+            translation.x = center.x + (time * orbit_speed).cos() * orbit_radius;
+            translation.y = center.y + (time * orbit_speed).sin() * orbit_radius;
+        }
 
         framebuffer.clear();
 
         let model_matrix = create_model_matrix(translation, scale, rotation);
-        let uniforms = Uniforms { model_matrix };
+        let uniforms = Uniforms { 
+            model_matrix,
+            time,
+        };
 
         render(&mut framebuffer, &uniforms, &vertex_array);
 
@@ -156,7 +183,14 @@ fn main() {
     }
 }
 
-fn handle_input(window: &mut RaylibHandle, translation: &mut Vector3, rotation: &mut Vector3, scale: &mut f32) {
+fn handle_input(
+    window: &mut RaylibHandle,
+    translation: &mut Vector3,
+    rotation: &mut Vector3,
+    scale: &mut f32,
+    auto_rotate: &mut bool,
+    auto_orbit: &mut bool,
+) {
     if window.is_key_down(KeyboardKey::KEY_RIGHT) {
         translation.x += 10.0;
     }
@@ -192,5 +226,15 @@ fn handle_input(window: &mut RaylibHandle, translation: &mut Vector3, rotation: 
     }
     if window.is_key_down(KeyboardKey::KEY_Y) {
         rotation.z += PI / 10.0;
+    }
+    
+    // Toggle auto-rotation with SPACE
+    if window.is_key_pressed(KeyboardKey::KEY_SPACE) {
+        *auto_rotate = !*auto_rotate;
+    }
+    
+    // Toggle auto-orbit with O
+    if window.is_key_pressed(KeyboardKey::KEY_O) {
+        *auto_orbit = !*auto_orbit;
     }
 }
