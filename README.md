@@ -1,6 +1,10 @@
-# Computer Graphics v3 - 3D Model Renderer
+# Lab 5 - Sistema Solar Procedural
 
-A high-performance Rust-based 3D graphics renderer built with Raylib that demonstrates fundamental computer graphics concepts including matrix transformations, OBJ model loading, and real-time rendering.
+**Renderer 3D con Shaders Procedurales** - Implementación de un sistema solar miniatura usando técnicas de programación gráfica sin texturas.
+
+## 🌍 Descripción
+
+Un renderer que renderiza **simultáneamente 3 cuerpos celestes** en órbita alrededor del **Sol**, todo generado con shaders procedurales (sin texturas ni materiales).
 
 ## 📋 Table of Contents
 
@@ -17,7 +21,25 @@ A high-performance Rust-based 3D graphics renderer built with Raylib that demons
 - [Contributing](#contributing)
 - [License](#license)
 
-## 🎯 Overview
+## 🎯 Disposición del Sistema Solar
+
+```
+            ☆ Sol (Centro)
+           /|\
+          / | \
+         /  |  \
+        /   |   \
+       /    |    \
+      /     |     \
+  ◉ Tierra◉|◉ Gas Giant
+ (Órbita    |  (Órbita
+  cercana)  |   lejana)
+```
+
+**En pantalla:**
+- **Sol**: Fijo en el centro, rotando sobre su eje
+- **Tierra**: Orbita cercana alrededor del Sol (radio: 80px)
+- **Gigante Gaseoso**: Órbita lejana alrededor del Sol (radio: 130px)
 
 This project is an educational graphics renderer that demonstrates core computer graphics concepts in Rust. It provides a complete pipeline for loading 3D models (OBJ format), applying transformations, and rendering them in real-time using a custom rasterization approach combined with Raylib for window management.
 
@@ -124,7 +146,7 @@ This creates highly optimized binaries for better runtime performance.
 cargo run
 ```
 
-For release mode (faster):
+For release mode (faster and recommended):
 
 ```bash
 cargo run --release
@@ -132,26 +154,38 @@ cargo run --release
 
 ### In-Application Controls
 
-While the application is running, you can:
-- **Close Window**: Click the window close button or press ESC
-- **View Different Models**: Models can be cycled through by modifying the code and recompiling
-- **Observe Transformations**: The application automatically applies rotation, translation, and scaling
+The solar system is fully interactive. While the application is running, use these controls:
 
-### Configuration
+**Camera Movement:**
+- Arrow keys (↑ ↓ ← →) - Pan the camera
+- **S** - Zoom in
+- **A** - Zoom out
 
-To change which model is loaded, modify the `main.rs` file where OBJ models are loaded:
+**System Rotation:**
+- **Q/W** - Rotate around X axis
+- **E/R** - Rotate around Y axis  
+- **T/Y** - Rotate around Z axis
 
-```rust
-let obj = Obj::load("assets/models/rem.obj")?;
-```
+**Animation Control:**
+- **SPACE** - Pause/Resume planet rotations
+- **O** - Pause/Resume orbital motion
 
-Replace the model filename with any available model in the `assets/models/` directory.
+For a complete guide, see [CONTROLES.md](./CONTROLES.md)
+
+### Dynamic Features
+
+The system automatically:
+- Renders 3 celestial bodies simultaneously
+- Calculates orbital mechanics in real-time
+- Generates procedural textures (shaders) for each planet
+- Updates FPS counter and timing information
+- Displays all available controls on screen
 
 ## 🧮 Technical Details
 
 ### Rendering Pipeline
 
-The project implements a simplified graphics pipeline with the following stages:
+The project implements a complete graphics pipeline with the following stages:
 
 1. **Vertex Processing**
    - Load vertices from OBJ files
@@ -159,12 +193,13 @@ The project implements a simplified graphics pipeline with the following stages:
    - Output transformed vertices
 
 2. **Rasterization**
-   - Convert geometric primitives to screen-space pixels
-   - Triangle and line rasterization algorithms
+   - Convert triangles to screen-space pixels
+   - Barycentric coordinate rasterization
+   - Depth interpolation
 
 3. **Fragment Processing**
-   - Compute final pixel color
-   - Apply lighting and shading calculations
+   - Compute final pixel color using procedural shaders
+   - Apply planet-specific shader effects (4 layers per planet)
    - Write to framebuffer
 
 4. **Output**

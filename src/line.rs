@@ -2,6 +2,7 @@ use crate::fragment::Fragment;
 use crate::vertex::Vertex;
 use raylib::math::Vector3;
 
+#[allow(dead_code)]
 pub fn line(a: &Vertex, b: &Vertex) -> Vec<Fragment> {
     let mut fragments = Vec::new();
 
