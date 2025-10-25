@@ -1,22 +1,97 @@
 use crate::vertex::Vertex;
+use crate::texture::Texture;
 use raylib::math::{Vector2, Vector3};
 use tobj;
+use std::path::Path;
+
+#[derive(Clone, Debug)]
+pub struct Material {
+    pub name: String,
+    pub ambient: Vector3,
+    pub diffuse: Vector3,
+    pub specular: Vector3,
+    pub shininess: f32,
+    pub texture_path: Option<String>,
+}
 
 pub struct Obj {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u32>,
+    pub materials: Vec<Material>,
+    pub mesh_materials: Vec<Option<usize>>, // Material index for each mesh
+    pub texture: Option<Texture>,
 }
 
 impl Obj {
     pub fn load(path: &str) -> Result<Self, tobj::LoadError> {
-        let (models, _materials) = tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS)?;
+        let (models, materials_result) = tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS)?;
 
         let mut vertices = Vec::new();
         let mut indices = Vec::new();
+        let mut mesh_materials = Vec::new();
+        let mut materials = Vec::new();
+
+        // Process materials if available
+        if let Ok(mats) = materials_result {
+            for mat in mats {
+                let ambient = if let Some(amb) = mat.ambient {
+                    Vector3::new(amb[0], amb[1], amb[2])
+                } else {
+                    Vector3::new(0.2, 0.2, 0.2)
+                };
+
+                let diffuse = if let Some(diff) = mat.diffuse {
+                    Vector3::new(diff[0], diff[1], diff[2])
+                } else {
+                    Vector3::new(1.0, 1.0, 1.0)
+                };
+
+                let specular = if let Some(spec) = mat.specular {
+                    Vector3::new(spec[0], spec[1], spec[2])
+                } else {
+                    Vector3::new(1.0, 1.0, 1.0)
+                };
+
+                let shininess = mat.shininess.unwrap_or(32.0);
+                
+                // Get texture path if available
+                let texture_path = mat.diffuse_texture.clone();
+
+                materials.push(Material {
+                    name: mat.name,
+                    ambient,
+                    diffuse,
+                    specular,
+                    shininess,
+                    texture_path,
+                });
+            }
+        }
+        
+        // Try to load texture from the first material that has one
+        let mut texture = None;
+        let base_path = std::path::Path::new(path).parent().unwrap_or(std::path::Path::new("."));
+        
+        for mat in &materials {
+            if let Some(tex_path) = &mat.texture_path {
+                let full_path = base_path.join(tex_path);
+                if let Ok(tex) = Texture::load(full_path.to_str().unwrap_or("")) {
+                    println!("✓ Loaded texture: {:?}", full_path);
+                    texture = Some(tex);
+                    break;
+                } else {
+                    eprintln!("✗ Failed to load texture: {:?}", full_path);
+                }
+            }
+        }
 
         for model in models {
             let mesh = &model.mesh;
             let num_vertices = mesh.positions.len() / 3;
+
+            // Store material index for this mesh
+            let material_idx = mesh.material_id;
+            mesh_materials.push(material_idx);
 
             // First pass: find bounds to normalize
             let mut min_x = f32::MAX;
@@ -78,12 +153,52 @@ impl Obj {
                     Vector2::zero()
                 };
 
-                vertices.push(Vertex::new(position, normal, tex_coords));
+                // Get material color if available
+                // If diffuse is pure white (common for textured models), use ambient instead
+                let mut material_color = if let Some(mat_idx) = material_idx {
+                    if mat_idx < materials.len() {
+                        let mat = &materials[mat_idx];
+                        // Check if diffuse is pure white (1.0, 1.0, 1.0)
+                        if (mat.diffuse.x - 1.0).abs() < 0.01 && 
+                           (mat.diffuse.y - 1.0).abs() < 0.01 && 
+                           (mat.diffuse.z - 1.0).abs() < 0.01 {
+                            // Use ambient color instead
+                            mat.ambient
+                        } else {
+                            mat.diffuse
+                        }
+                    } else {
+                        Vector3::new(1.0, 1.0, 1.0)
+                    }
+                } else {
+                    Vector3::new(1.0, 1.0, 1.0)
+                };
+                
+                // If texture is available, sample it and blend with material color
+                if let Some(ref tex) = texture {
+                    let tex_color = tex.sample_bilinear(tex_coords.x, tex_coords.y);
+                    // Blend texture 70% with material 30% for nice procedural/texture mix
+                    material_color = Vector3::new(
+                        tex_color.x * 0.7 + material_color.x * 0.3,
+                        tex_color.y * 0.7 + material_color.y * 0.3,
+                        tex_color.z * 0.7 + material_color.z * 0.3,
+                    );
+                }
+
+                let mut vertex = Vertex::new(position, normal, tex_coords);
+                vertex.color = material_color;
+                vertices.push(vertex);
             }
             indices.extend_from_slice(&mesh.indices);
         }
 
-        Ok(Obj { vertices, indices })
+        Ok(Obj { 
+            vertices, 
+            indices,
+            materials,
+            mesh_materials,
+            texture,
+        })
     }
 
     pub fn get_vertex_array(&self) -> Vec<Vertex> {
@@ -92,5 +207,13 @@ impl Obj {
             vertex_array.push(self.vertices[index as usize].clone());
         }
         vertex_array
+    }
+    
+    pub fn get_texture(&self) -> &Option<Texture> {
+        &self.texture
+    }
+
+    pub fn get_materials(&self) -> &Vec<Material> {
+        &self.materials
     }
 }

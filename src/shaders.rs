@@ -135,8 +135,15 @@ fn sun_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
     
     let uv = Vector2::new(u, v);
     
+    // Get material color from MTL file if available (now includes texture!)
+    let material_color = vertex.color;
+    
     // Layer 1: Core temperature gradient (white-yellow-orange)
-    let core_gradient = Vector3::new(1.0, 1.0, 0.2) * (0.8 + fbm(uv * 2.0, 2) * 0.2);
+    let core_gradient = mix_color(
+        Vector3::new(1.0, 1.0, 0.2) * (0.8 + fbm(uv * 2.0, 2) * 0.2),
+        material_color,
+        0.5  // Increased from 0.3 to let texture show more
+    );
     
     // Layer 2: Photosphere turbulence (thick noise patterns)
     let photosphere = fbm(uv * 6.0 + time * 0.25, 4);
@@ -180,6 +187,9 @@ fn earth_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
     
     let uv = Vector2::new(u, v);
     
+    // Get material color from MTL file if available (now includes texture!)
+    let material_color = vertex.color;
+    
     // Layer 1: Ocean base with depth variation
     let ocean_depth = fbm(uv * 3.0, 2);
     let ocean_base = mix_color(
@@ -187,6 +197,9 @@ fn earth_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
         Vector3::new(0.0, 0.4, 0.8),  // Shallow ocean
         ocean_depth
     );
+    
+    // BLEND WITH TEXTURE: Use texture as base, only add procedural detail
+    let ocean_with_texture = mix_color(ocean_base, material_color, 0.6); // 60% texture visible
     
     // Layer 2: Landmasses (MUCH more detailed continents)
     let land_noise1 = fbm(uv * 4.0, 5);
@@ -201,7 +214,10 @@ fn earth_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
         1 => Vector3::new(0.6, 0.55, 0.2),    // Grassland (tan)
         _ => Vector3::new(0.7, 0.6, 0.3),     // Desert (sand)
     };
-    let with_land = mix_color(ocean_base, land_color, land_mask * 0.9);
+    
+    // Mix land with texture more heavily (let texture dominate)
+    let land_color_with_material = mix_color(land_color, material_color, 0.7);  // 70% texture
+    let with_land = mix_color(ocean_with_texture, land_color_with_material, land_mask * 0.9);
     
     // Layer 3: Mountain ranges with HIGH detail (crags, peaks, valleys)
     let mountain_detail1 = fbm(uv * 30.0, 4);
@@ -272,6 +288,9 @@ fn gas_giant_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3
     
     let uv = Vector2::new(u, v);
     
+    // Get material color from MTL file if available (now includes texture!)
+    let material_color = vertex.color;
+    
     // Layer 1: Base atmosphere color (orange/brown gradient)
     let base_color = mix_color(
         Vector3::new(1.0, 0.6, 0.2),  // Bright orange
@@ -279,11 +298,14 @@ fn gas_giant_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3
         v  // Gradient from bottom to top
     );
     
+    // Mix with material color from MTL (texture)
+    let base_with_material = mix_color(base_color, material_color, 0.6);  // 60% texture visible
+    
     // Layer 2: Atmospheric bands (horizontal stripes)
     let bands = ((v * 20.0 + time * 0.1).sin() * 0.5 + 0.5).max(0.0).min(1.0);
     let band_darkness = smoothstep(0.3, 0.6, bands);
     let band_color = Vector3::new(0.6, 0.3, 0.1);
-    let with_bands = mix_color(base_color, band_color, band_darkness * 0.5);
+    let with_bands = mix_color(base_with_material, band_color, band_darkness * 0.3);  // Reduced from 0.5
     
     // Layer 3: Turbulent storms and wind patterns
     let storm_noise1 = fbm(uv * 8.0 + time * 0.08, 4);
@@ -338,6 +360,9 @@ fn moon_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
     
     let uv = Vector2::new(u, v);
     
+    // Get material color from MTL file if available (now includes texture!)
+    let material_color = vertex.color;
+    
     // Layer 1: Base gray rocky surface with variation
     let base_noise = fbm(uv * 2.0, 2);
     let base = mix_color(
@@ -346,11 +371,14 @@ fn moon_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
         base_noise
     );
     
-    // Layer 2: Large craters (deep impact sites)
+    // Mix with material color from MTL (texture) - let texture dominate
+    let base_with_material = mix_color(base, material_color, 0.7);  // 70% texture
+    
+    // Layer 2: Large craters (deep impact sites) - reduce intensity
     let large_craters = fbm(uv * 6.0, 3);
     let crater_large_mask = ((large_craters - 0.35) * 2.5).clamp(0.0, 1.0);
     let crater_large_color = Vector3::new(0.25, 0.25, 0.27);
-    let with_large_craters = mix_color(base, crater_large_color, crater_large_mask * 0.8);
+    let with_large_craters = mix_color(base_with_material, crater_large_color, crater_large_mask * 0.4);  // Reduced from 0.8
     
     // Layer 3: Medium craters and detailed surface texture
     let medium_craters1 = fbm(uv * 12.0, 4);
@@ -437,6 +465,9 @@ fn neptune_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
     
     let uv = Vector2::new(u, v);
     
+    // Get material color from MTL file if available
+    let material_color = vertex.color;
+    
     // Layer 1: Base deep ocean blue
     let base_color = mix_color(
         Vector3::new(0.0, 0.2, 0.6),  // Deep navy
@@ -444,11 +475,14 @@ fn neptune_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
         v * 0.7
     );
     
+    // Mix with material color from MTL
+    let base_with_material = mix_color(base_color, material_color, 0.25);  // Increased from 0.15
+    
     // Layer 2: Methane cloud bands
     let cloud_bands = ((v * 15.0 - time * 0.08).sin() * 0.5 + 0.5).max(0.0).min(1.0);
     let band_noise = fbm(uv * 4.0, 2);
     let cloud_mask = smoothstep(0.3, 0.7, cloud_bands + band_noise * 0.3);
-    let with_clouds = mix_color(base_color, Vector3::new(0.9, 0.95, 1.0), cloud_mask * 0.4);
+    let with_clouds = mix_color(base_with_material, Vector3::new(0.9, 0.95, 1.0), cloud_mask * 0.4);
     
     // Layer 3: Great Dark Spot (storm system similar to Jupiter)
     let spot_center_x = 0.5;
@@ -495,6 +529,9 @@ fn uranus_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
     
     let uv = Vector2::new(u, v);
     
+    // Get material color from MTL file if available
+    let material_color = vertex.color;
+    
     // Layer 1: Base icy cyan color
     let base_color = mix_color(
         Vector3::new(0.3, 0.8, 0.9),  // Bright cyan
@@ -502,10 +539,13 @@ fn uranus_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
         fbm(uv * 2.0, 2)
     );
     
+    // Mix with material color from MTL
+    let base_with_material = mix_color(base_color, material_color, 0.25);  // Increased from 0.15
+    
     // Layer 2: Methane frost patterns
     let frost = fbm(uv * 6.0 + time * 0.05, 3);
     let frost_color = Vector3::new(0.6, 0.95, 1.0);
-    let with_frost = mix_color(base_color, frost_color, frost * 0.6);
+    let with_frost = mix_color(base_with_material, frost_color, frost * 0.6);
     
     // Layer 3: Subtle polar bands (unlike other planets, Uranus has faint bands)
     let polar_bands = ((v * 8.0).sin() * 0.5 + 0.5).max(0.0).min(1.0);
@@ -556,6 +596,9 @@ fn venus_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
     
     let uv = Vector2::new(u, v);
     
+    // Get material color from MTL file if available
+    let material_color = vertex.color;
+    
     // Layer 1: Base hellish yellow/orange atmosphere with depth
     let base_noise = fbm(uv * 2.0, 2);
     let base_color = mix_color(
@@ -563,6 +606,9 @@ fn venus_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
         Vector3::new(0.9, 0.7, 0.1),   // Darker orange
         base_noise
     );
+    
+    // Mix with material color from MTL
+    let base_with_material = mix_color(base_color, material_color, 0.25);  // Increased from 0.15
     
     // Layer 2: Thick toxic cloud swirls (MUCH more detailed)
     let cloud_swirl1 = fbm(uv * 5.0 + time * 0.2, 4);
@@ -574,7 +620,7 @@ fn venus_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
         Vector3::new(0.7, 0.5, 0.0),   // Dark orange clouds
         clouds_combined
     );
-    let with_clouds = mix_color(base_color, cloud_color, 0.8);
+    let with_clouds = mix_color(base_with_material, cloud_color, 0.8);
     
     // Layer 3: Visible rocky surface beneath atmosphere (ADDED!)
     let surface_detail1 = fbm(uv * 15.0, 4);

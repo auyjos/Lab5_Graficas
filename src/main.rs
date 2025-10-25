@@ -10,9 +10,11 @@ mod obj;
 mod matrix;
 mod rings;
 mod moons;
+mod texture;
 
 use crate::matrix::new_matrix4;
 use crate::shaders::get_planet_color;
+use crate::texture::Texture;
 use framebuffer::Framebuffer;
 use vertex::Vertex;
 use triangle::triangle;
@@ -37,6 +39,7 @@ struct CelestialBody {
     orbit_radius: f32,
     orbit_speed: f32,
     rotation_speed: f32,
+    model_path: String, // Path to OBJ file
 }
 
 fn create_model_matrix(translation: Vector3, scale: f32, rotation: Vector3) -> Matrix {
@@ -122,7 +125,7 @@ fn render(framebuffer: &mut Framebuffer, uniforms: &Uniforms, vertex_array: &[Ve
             position: Vector3::new(fragment.position.x, fragment.position.y, 0.0),
             normal: Vector3::new(0.0, 1.0, 0.0),
             tex_coords: Vector2::zero(),
-            color: Vector3::new(1.0, 1.0, 1.0),
+            color: fragment.color, // Use material color from the vertex
             transformed_position: Vector3::new(fragment.position.x, fragment.position.y, fragment.depth),
             transformed_normal: Vector3::new(0.0, 1.0, 0.0),
         };
@@ -164,58 +167,87 @@ fn main() {
     let mut camera_zoom = 1.0f32;
     let mut system_rotation = Vector3::new(0.0, 0.0, 0.0);
 
-    let obj = Obj::load("assets/models/13902_Earth_v1_l3.obj").expect("Failed to load obj");
-    let vertex_array = obj.get_vertex_array();
+    // Load all unique models into a cache (with textures)
+    let mut model_cache: std::collections::HashMap<String, (Vec<Vertex>, Option<Texture>)> = std::collections::HashMap::new();
+    
+    // Pre-load unique models
+    let unique_models = vec![
+        "assets/models/13913_Sun_v2_l3.obj",
+        "assets/models/13902_Earth_v1_l3.obj",
+        "assets/models/13905_Jupiter_V1_l3.obj",
+        "assets/models/13907_Uranus_v2_l3.obj",
+        "assets/models/10464_Asteroid_v1_Iterations-2.obj",
+    ];
+    
+    for model_path in unique_models {
+        match Obj::load(model_path) {
+            Ok(obj) => {
+                let vertex_array = obj.get_vertex_array();
+                let texture = obj.get_texture().clone();
+                model_cache.insert(model_path.to_string(), (vertex_array, texture));
+                println!("✓ Loaded model: {}", model_path);
+            }
+            Err(e) => {
+                eprintln!("✗ Failed to load {}: {:?}", model_path, e);
+            }
+        }
+    }
 
-    // Define celestial bodies
+    // Define celestial bodies with their respective OBJ models
     let bodies = vec![
         CelestialBody {
             name: "Sol".to_string(),
             planet_type: 0,
-            scale: 40.0,          // Center sun
-            orbit_radius: 0.0,    // No orbit
+            scale: 40.0,
+            orbit_radius: 0.0,
             orbit_speed: 0.0,
             rotation_speed: 0.02,
+            model_path: "assets/models/13913_Sun_v2_l3.obj".to_string(),
         },
         CelestialBody {
             name: "Tierra".to_string(),
             planet_type: 1,
-            scale: 25.0,          // Smaller planet
-            orbit_radius: 90.0,   // Orbit around sun
-            orbit_speed: 0.15,    // INCREASED: More visible orbit
+            scale: 25.0,
+            orbit_radius: 90.0,
+            orbit_speed: 0.15,
             rotation_speed: 0.03,
+            model_path: "assets/models/13902_Earth_v1_l3.obj".to_string(),
         },
         CelestialBody {
             name: "Gigante Gaseoso".to_string(),
             planet_type: 2,
-            scale: 35.0,          // Larger planet
-            orbit_radius: 140.0,  // Far orbit
-            orbit_speed: 0.08,    // INCREASED: More visible orbit
+            scale: 35.0,
+            orbit_radius: 140.0,
+            orbit_speed: 0.08,
             rotation_speed: 0.02,
+            model_path: "assets/models/13905_Jupiter_V1_l3.obj".to_string(),
         },
         CelestialBody {
             name: "Venus".to_string(),
             planet_type: 7,
-            scale: 22.0,          // Similar to Earth
-            orbit_radius: 65.0,   // Closer to sun than Earth
-            orbit_speed: 0.20,    // INCREASED: Faster orbit
-            rotation_speed: 0.008, // Very slow rotation (retrograde)
+            scale: 22.0,
+            orbit_radius: 65.0,
+            orbit_speed: 0.20,
+            rotation_speed: 0.008,
+            model_path: "assets/models/13902_Earth_v1_l3.obj".to_string(), // Reuse Earth model
         },
         CelestialBody {
             name: "Neptuno".to_string(),
             planet_type: 5,
-            scale: 32.0,          // Slightly smaller than gas giant
-            orbit_radius: 180.0,  // Very far orbit
-            orbit_speed: 0.05,    // INCREASED: More visible orbit
+            scale: 32.0,
+            orbit_radius: 180.0,
+            orbit_speed: 0.05,
             rotation_speed: 0.025,
+            model_path: "assets/models/13907_Uranus_v2_l3.obj".to_string(), // Reuse Uranus model
         },
         CelestialBody {
             name: "Urano".to_string(),
             planet_type: 6,
-            scale: 30.0,          // Slightly larger than Neptune
-            orbit_radius: 160.0,  // Between gas giant and Neptune
-            orbit_speed: 0.07,    // INCREASED: More visible orbit
-            rotation_speed: 0.035, // Fast rotation
+            scale: 30.0,
+            orbit_radius: 160.0,
+            orbit_speed: 0.07,
+            rotation_speed: 0.035,
+            model_path: "assets/models/13907_Uranus_v2_l3.obj".to_string(),
         },
     ];
 
@@ -272,7 +304,10 @@ fn main() {
                 planet_type: body.planet_type,
             };
 
-            render(&mut framebuffer, &uniforms, &vertex_array);
+            // Get the vertex array for this body's model
+            if let Some((vertex_array, _texture)) = model_cache.get(&body.model_path) {
+                render(&mut framebuffer, &uniforms, vertex_array);
+            }
 
             // Renderizar lunas y anillos específicos para algunos planetas
             match body.planet_type {
@@ -298,7 +333,11 @@ fn main() {
                         time,
                         planet_type: 3, // Moon shader
                     };
-                    render(&mut framebuffer, &moon_uniforms, &vertex_array);
+                    
+                    // Use asteroid model for moon
+                    if let Some((moon_vertex_array, _moon_texture)) = model_cache.get("assets/models/10464_Asteroid_v1_Iterations-2.obj") {
+                        render(&mut framebuffer, &moon_uniforms, moon_vertex_array);
+                    }
                 },
                 2 => {
                     // Gigante Gaseoso - Renderizar anillos
