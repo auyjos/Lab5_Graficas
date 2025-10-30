@@ -152,7 +152,7 @@ fn main() {
         .build();
 
     let mut framebuffer = Framebuffer::new(window_width as u32, window_height as u32);
-    framebuffer.set_background_color(Vector3::new(0.2, 0.2, 0.4)); // Dark blue-ish
+    framebuffer.set_background_color(Vector3::new(0.01, 0.01, 0.05)); // Deep space black with slight blue tint
 
     // Initialize the texture inside the framebuffer
     framebuffer.init_texture(&mut window, &thread);
@@ -164,7 +164,7 @@ fn main() {
     
     // Camera/viewport control
     let mut camera_offset = Vector3::new(0.0, 0.0, 0.0);
-    let mut camera_zoom = 1.0f32;
+    let mut camera_zoom = 0.6f32;  // Start more zoomed out to see all planets
     let mut system_rotation = Vector3::new(0.0, 0.0, 0.0);
 
     // Load all unique models into a cache (with textures)
@@ -198,7 +198,7 @@ fn main() {
         CelestialBody {
             name: "Sol".to_string(),
             planet_type: 0,
-            scale: 40.0,
+            scale: 50.0,  // Slightly larger sun
             orbit_radius: 0.0,
             orbit_speed: 0.0,
             rotation_speed: 0.02,
@@ -207,8 +207,8 @@ fn main() {
         CelestialBody {
             name: "Tierra".to_string(),
             planet_type: 1,
-            scale: 25.0,
-            orbit_radius: 90.0,
+            scale: 20.0,  // Smaller to emphasize distance
+            orbit_radius: 180.0,  // Much farther from sun
             orbit_speed: 0.15,
             rotation_speed: 0.03,
             model_path: "assets/models/13902_Earth_v1_l3.obj".to_string(),
@@ -216,8 +216,8 @@ fn main() {
         CelestialBody {
             name: "Gigante Gaseoso".to_string(),
             planet_type: 2,
-            scale: 35.0,
-            orbit_radius: 140.0,
+            scale: 28.0,  // Smaller but still large
+            orbit_radius: 280.0,  // Very far orbit
             orbit_speed: 0.08,
             rotation_speed: 0.02,
             model_path: "assets/models/13905_Jupiter_V1_l3.obj".to_string(),
@@ -225,8 +225,8 @@ fn main() {
         CelestialBody {
             name: "Venus".to_string(),
             planet_type: 7,
-            scale: 22.0,
-            orbit_radius: 65.0,
+            scale: 18.0,  // Smaller, closer to sun
+            orbit_radius: 120.0,  // Between sun and Earth
             orbit_speed: 0.20,
             rotation_speed: 0.008,
             model_path: "assets/models/13902_Earth_v1_l3.obj".to_string(), // Reuse Earth model
@@ -234,8 +234,8 @@ fn main() {
         CelestialBody {
             name: "Neptuno".to_string(),
             planet_type: 5,
-            scale: 32.0,
-            orbit_radius: 180.0,
+            scale: 25.0,  // Medium size
+            orbit_radius: 380.0,  // Very far orbit
             orbit_speed: 0.05,
             rotation_speed: 0.025,
             model_path: "assets/models/13907_Uranus_v2_l3.obj".to_string(), // Reuse Uranus model
@@ -243,8 +243,8 @@ fn main() {
         CelestialBody {
             name: "Urano".to_string(),
             planet_type: 6,
-            scale: 30.0,
-            orbit_radius: 160.0,
+            scale: 24.0,  // Similar to Neptune
+            orbit_radius: 330.0,  // Between Jupiter and Neptune
             orbit_speed: 0.07,
             rotation_speed: 0.035,
             model_path: "assets/models/13907_Uranus_v2_l3.obj".to_string(),

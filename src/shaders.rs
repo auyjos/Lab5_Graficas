@@ -120,6 +120,44 @@ fn smoothstep(edge0: f32, edge1: f32, x: f32) -> f32 {
     t * t * (3.0 - 2.0 * t)
 }
 
+/// Calculate lighting based on normal and light direction
+fn calculate_lighting(normal: Vector3, light_dir: Vector3, view_dir: Vector3) -> f32 {
+    // Normalize vectors
+    let n = normalize(normal);
+    let l = normalize(light_dir);
+    let v = normalize(view_dir);
+    
+    // Diffuse lighting (Lambertian)
+    let diffuse = (n.x * l.x + n.y * l.y + n.z * l.z).max(0.0);
+    
+    // Specular lighting (Phong)
+    let r = reflect(l, n);
+    let specular = (r.x * v.x + r.y * v.y + r.z * v.z).max(0.0).powf(32.0);
+    
+    // Ambient + Diffuse + Specular
+    0.2 + diffuse * 0.7 + specular * 0.3
+}
+
+/// Normalize a vector
+fn normalize(v: Vector3) -> Vector3 {
+    let len = (v.x * v.x + v.y * v.y + v.z * v.z).sqrt();
+    if len > 0.0001 {
+        Vector3::new(v.x / len, v.y / len, v.z / len)
+    } else {
+        v
+    }
+}
+
+/// Reflect vector v around normal n
+fn reflect(v: Vector3, n: Vector3) -> Vector3 {
+    let dot2 = 2.0 * (v.x * n.x + v.y * n.y + v.z * n.z);
+    Vector3::new(
+        v.x - dot2 * n.x,
+        v.y - dot2 * n.y,
+        v.z - dot2 * n.z,
+    )
+}
+
 /// SUN SHADER - Dynamic solar surface with 5 layers
 fn sun_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
     // UV coordinates from position
@@ -679,7 +717,8 @@ fn venus_shader(_fragment: &Fragment, vertex: &Vertex, time: f32) -> Vector3 {
 
 /// Get the appropriate shader color based on planet type
 pub fn get_planet_color(fragment: &Fragment, vertex: &Vertex, time: f32, planet_type: u32) -> Vector3 {
-    match planet_type {
+    // Get base color from shader
+    let base_color = match planet_type {
         0 => sun_shader(fragment, vertex, time),
         1 => earth_shader(fragment, vertex, time),
         2 => gas_giant_shader(fragment, vertex, time),
@@ -689,5 +728,27 @@ pub fn get_planet_color(fragment: &Fragment, vertex: &Vertex, time: f32, planet_
         6 => uranus_shader(fragment, vertex, time),  // Uranus shader
         7 => venus_shader(fragment, vertex, time),   // Venus shader
         _ => Vector3::new(1.0, 1.0, 1.0), // Default white
+    };
+    
+    // Apply lighting (except for Sun and rings)
+    if planet_type == 0 || planet_type == 4 {
+        // Sun emits light, rings are flat
+        base_color
+    } else {
+        // Light direction (from Sun at origin towards positive Z)
+        let light_dir = Vector3::new(0.3, 0.5, 1.0);
+        
+        // View direction (camera looking at planet)
+        let view_dir = Vector3::new(0.0, 0.0, -1.0);
+        
+        // Calculate lighting factor
+        let lighting = calculate_lighting(vertex.normal, light_dir, view_dir);
+        
+        // Apply lighting to base color
+        Vector3::new(
+            base_color.x * lighting,
+            base_color.y * lighting,
+            base_color.z * lighting,
+        )
     }
 }
